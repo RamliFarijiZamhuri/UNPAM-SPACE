@@ -1,0 +1,548 @@
+import React, { useState, useEffect } from 'react';
+import { LostFoundReport, User } from '../../../types';
+import { ShieldAlert, Search, Plus, CheckCircle, ArrowLeft, PlusCircle, Check, MessageSquare, AlertCircle, Trash2, X } from 'lucide-react';
+
+interface LostFoundPageProps {
+  currentUser: User;
+  onGoBack: () => void;
+}
+
+export default function LostFoundPage({ currentUser, onGoBack }: LostFoundPageProps) {
+  const [reports, setReports] = useState<LostFoundReport[]>([]);
+  const [activeTab, setActiveTab] = useState<'hilang' | 'temuan'>('hilang');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Active chat detail dialog
+  const [activeChatReport, setActiveChatReport] = useState<LostFoundReport | null>(null);
+  const [chatInputText, setChatInputText] = useState('');
+
+  // Add state form
+  const [formType, setFormType] = useState<'hilang' | 'temuan'>('hilang');
+  const [formTitle, setFormTitle] = useState('');
+  const [formLocation, setFormLocation] = useState('');
+  const [formDate, setFormDate] = useState('');
+  const [formDesc, setFormDesc] = useState('');
+  const [formContact, setFormContact] = useState('');
+
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/temuan');
+      const result = await response.json();
+      if (response.ok && result.success) {
+        const mappedReports: LostFoundReport[] = result.data.map((r: any) => ({
+          id: r.id,
+          type: r.type as 'hilang' | 'temuan',
+          title: r.title,
+          description: r.description,
+          location: r.location,
+          date: r.created_at ? r.created_at.split('T')[0] : '',
+          photoIndex: Math.floor(Math.random() * 4) + 1,
+          reporterName: r.users?.nama || 'Anonymous',
+          contact: r.contact,
+          status: r.status as 'aktif' | 'klaim_diajukan' | 'selesai',
+          createdAt: r.created_at,
+          chatMessages: []
+        }));
+        setReports(mappedReports);
+      }
+    } catch (err) {
+      console.error('Failed to fetch reports:', err);
+    }
+  };
+
+  const handleCreateReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formTitle || !formLocation || !formDate || !formDesc || !formContact) {
+      triggerToast('Mohon lengkapi data barang hilang/temuan!');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('type', formType);
+      formData.append('title', formTitle);
+      formData.append('description', formDesc);
+      formData.append('location', formLocation);
+      formData.append('contact', formContact);
+      // Not adding a 'foto' file yet, but formData ensures it goes as multipart
+
+      const response = await fetch('http://localhost:5000/api/temuan', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+      if (response.ok && result.success) {
+        fetchReports();
+        setShowAddModal(false);
+        setFormTitle('');
+        setFormLocation('');
+        setFormDate('');
+        setFormDesc('');
+        setFormContact('');
+        triggerToast(`Sukses mendaftarkan laporan barang ${formType === 'hilang' ? 'hilang' : 'ditemukan'}!`);
+      } else {
+        triggerToast(result.message || 'Gagal menambahkan laporan.');
+      }
+    } catch (err) {
+      console.error('Create report error:', err);
+      triggerToast('Gagal terhubung ke server.');
+    }
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInputText.trim() || !activeChatReport) return;
+
+    const newMessage = {
+      id: 'msg_' + Date.now(),
+      senderName: currentUser.name,
+      text: chatInputText,
+      createdAt: new Date().toISOString().substring(11, 16) + ' WIB'
+    };
+
+    const updatedReports = reports.map(r => {
+      if (r.id === activeChatReport.id) {
+        const nextMsgs = [...r.chatMessages, newMessage];
+        return { ...r, chatMessages: nextMsgs };
+      }
+      return r;
+    });
+
+    setReports(updatedReports);
+    // Update local modal state
+    setActiveChatReport({
+      ...activeChatReport,
+      chatMessages: [...activeChatReport.chatMessages, newMessage]
+    });
+    setChatInputText('');
+
+    // Trigger mock auto replies
+    setTimeout(() => {
+      const autoReply = {
+        id: 'msg_r_' + Date.now(),
+        senderName: activeChatReport.reporterName,
+        text: 'Baik bro, makasih responnya. Boleh kita ketemuan di lobby lobi timur Gedung B pas jam makan siang ini? Saya tunggu di kursi deket Lawson ya.',
+        createdAt: new Date().toISOString().substring(11, 16) + ' WIB'
+      };
+
+      setReports(prev => prev.map(r => {
+        if (r.id === activeChatReport.id) {
+          return { ...r, chatMessages: [...r.chatMessages, autoReply] };
+        }
+        return r;
+      }));
+
+      setActiveChatReport(prev => prev ? {
+        ...prev,
+        chatMessages: [...prev.chatMessages, autoReply]
+      } : null);
+
+    }, 1500);
+  };
+
+  const handleResolveReport = (id: string) => {
+    setReports(reports.map(r => r.id === id ? { ...r, status: 'selesai' } : r));
+    triggerToast('Laporan ditutup. Terima kasih telah membantu sesama mahasiswa!');
+    if (activeChatReport?.id === id) {
+      setActiveChatReport(null);
+    }
+  };
+
+  const handleDeleteReport = (id: string) => {
+    setReports(reports.filter(r => r.id !== id));
+    triggerToast('Laporan berhasil dihapus!');
+  };
+
+  const filteredReports = reports.filter((r) => {
+    const matchesTab = r.type === activeTab;
+    const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          r.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          r.location.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className="fixed top-20 right-4 z-50 bg-(--color-midnight-harbor) text-white text-sm font-bold py-3.5 px-6 rounded-xl border border-blue-400/30 shadow-2xl flex items-center gap-2 animate-[slideIn_0.2s_ease-out]">
+          <CheckCircle className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Header sections */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <button
+            onClick={onGoBack}
+            className="flex items-center gap-1.5 text-xs font-bold text-(--color-slate-channel) hover:text-(--color-midnight-harbor) cursor-pointer transition-colors mb-2 focus:outline-none"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Kembali ke Menu
+          </button>
+          <h1 className="text-3xl font-extrabold tracking-tight text-(--color-midnight-harbor)">
+            Barang Hilang & Temuan
+          </h1>
+          <p className="text-sm text-(--color-slate-channel) mt-1">
+            Layanan bulletin digital terverifikasi untuk melaporkan kehilangan barang berharga di lingkungan kampus UNPAM.
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center justify-center gap-1.5 rounded-full bg-(--color-signal-blue) text-white px-5 py-3 font-bold text-sm cursor-pointer shadow-md hover:scale-103 active:scale-98 transition-all"
+        >
+          <Plus className="w-4 h-4" />
+          Kirim Laporan Baru
+        </button>
+      </div>
+
+      {/* Auto-matching Notification Warning strip */}
+      <div className="bg-amber-50 border border-amber-200 text-amber-950 p-4 rounded-xl mb-8 flex items-start gap-3 text-xs leading-relaxed">
+        <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 animate-bounce" />
+        <div>
+          <span className="font-extrabold block text-amber-900 mb-0.5">Sistem Pencocokan Otomatis Aktif (Auto-Match)</span>
+          Algoritma cerdas kami memindai semua item laporan secara real-time. Jika Anda menginput laporan kehilangan kunci motor, kami otomatis mereferensikan seluruh laporan temuan sejenis dalam rentang tanggal terkait.
+        </div>
+      </div>
+
+      {/* Toggles and Search filter row */}
+      <div className="bg-(--color-ice-tint) rounded-2xl p-4 mb-8 border border-(--color-sea-fog) flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="flex gap-2 w-full md:w-auto shrink-0">
+          <button
+            onClick={() => setActiveTab('hilang')}
+            className={`flex-1 md:flex-none px-5 py-2.5 text-xs font-bold rounded-xl border cursor-pointer transition-all ${
+              activeTab === 'hilang'
+                ? 'bg-(--color-midnight-harbor) border-(--color-midnight-harbor) text-white'
+                : 'bg-white border-(--color-sea-fog) text-(--color-midnight-harbor) hover:bg-slate-50'
+            }`}
+          >
+            📋 Sedang Dicari (Barang Hilang)
+          </button>
+          <button
+            onClick={() => setActiveTab('temuan')}
+            className={`flex-1 md:flex-none px-5 py-2.5 text-xs font-bold rounded-xl border cursor-pointer transition-all ${
+              activeTab === 'temuan'
+                ? 'bg-(--color-midnight-harbor) border-(--color-midnight-harbor) text-white'
+                : 'bg-white border-(--color-sea-fog) text-(--color-midnight-harbor) hover:bg-slate-50'
+            }`}
+          >
+            🔍 Ditemukan Mahasiswa (Temuan)
+          </button>
+        </div>
+
+        <div className="relative w-full md:max-w-xs">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-(--color-slate-channel)" />
+          <input
+            type="text"
+            placeholder="Cari kunci motor, tumbler, ktm..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white pl-10 pr-4 py-2.5 text-xs rounded-xl border border-(--color-sea-fog) focus:border-(--color-signal-blue) focus:outline-none text-(--color-midnight-harbor)"
+          />
+        </div>
+      </div>
+
+      {/* Reports Render Grid */}
+      {filteredReports.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-2xl border border-(--color-sea-fog) px-4">
+          <p className="text-slate-400 font-bold text-base mb-1">Tidak ada laporan aktif untuk kategori ini</p>
+          <p className="text-xs text-slate-400">Silakan daftarkan temuan atau kehilangan barang baru melalui tombol kanan.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredReports.map((item) => {
+            const isMine = item.reporterName === currentUser.name;
+            const isClosed = item.status === 'selesai';
+            
+            return (
+              <div
+                key={item.id}
+                className={`bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between ${
+                  isClosed ? 'opacity-60 bg-slate-50 border-slate-200' : 'border-(--color-sea-fog) hover:border-(--color-signal-blue)'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3 text-[10px] font-bold text-(--color-slate-channel)">
+                    <span>📅 Terjadi: {item.date}</span>
+                    <span className={`px-2 py-0.5 rounded uppercase font-mono ${
+                      isClosed ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {item.status}
+                    </span>
+                  </div>
+
+                  <h3 className="font-extrabold text-sm text-(--color-midnight-harbor) mb-1.5 leading-snug">
+                    {item.title}
+                  </h3>
+                  
+                  <p className="text-xs text-slate-500 leading-relaxed font-semibold mb-2.5">
+                    📍 Area: {item.location}
+                  </p>
+
+                  <p className="text-xs text-(--color-slate-channel) leading-relaxed">
+                    {item.description}
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-slate-50 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-(--color-slate-channel)">
+                    Pelapor: {item.reporterName}
+                  </span>
+
+                  <div className="flex gap-1">
+                    {isMine && !isClosed && (
+                      <button
+                        onClick={() => handleResolveReport(item.id)}
+                        className="py-1 px-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-lg text-[10px] font-bold cursor-pointer transition-all"
+                      >
+                        Tandai Selesai
+                      </button>
+                    )}
+
+                    {!isClosed && (
+                      <button
+                        onClick={() => setActiveChatReport(item)}
+                        className="py-1.5 px-3 bg-(--color-signal-blue) hover:opacity-95 text-white rounded-lg text-[10px] font-bold cursor-pointer flex items-center gap-1.5 transition-all"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        Ruang Chat ({item.chatMessages.length})
+                      </button>
+                    )}
+
+                    {isMine && (
+                      <button
+                        onClick={() => handleDeleteReport(item.id)}
+                        className="p-1 px-1.5 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer transition-all"
+                        title="Hapus Laporan"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Chat stream modal */}
+      {activeChatReport && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-(--color-sea-fog) w-full max-w-md shadow-2xl flex flex-col h-[480px] overflow-hidden animate-[zoomIn_0.15s_ease-out]">
+            <div className="px-5 py-4 bg-(--color-midnight-harbor) text-white flex justify-between items-center shrinks-0">
+              <div>
+                <h4 className="font-extrabold text-sm truncate max-w-[250px]">{activeChatReport.title}</h4>
+                <p className="text-[10px] text-slate-300">Penemu/Reporter: {activeChatReport.reporterName}</p>
+              </div>
+              <button
+                onClick={() => setActiveChatReport(null)}
+                className="p-1 text-slate-300 hover:text-white rounded-full cursor-pointer hover:bg-slate-800 focus:outline-none"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50">
+              <div className="bg-amber-50 p-3 rounded-xl border border-amber-100 text-[10px] leading-relaxed text-amber-900">
+                ⚠️ PERINGATAN: Demi keamanan barang Anda, saat COD mintalah pelaku penemu menunjukkan foto KTM atau mintalah menanyakan ciri khas barang spesifik yang tidak dituliskan di dalam deskripsi.
+              </div>
+
+              {activeChatReport.chatMessages.length === 0 ? (
+                <p className="text-center text-[10px] text-slate-400 py-10">Belum ada obrolan. Kirim chat pertama Anda untuk memulai koordinasi pengembalian barang.</p>
+              ) : (
+                activeChatReport.chatMessages.map((msg, idx) => {
+                  const isMe = msg.senderName === currentUser.name;
+                  return (
+                    <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`p-2.5 rounded-xl text-xs max-w-[80%] leading-relaxed ${
+                        isMe 
+                          ? 'bg-(--color-signal-blue) text-white' 
+                          : 'bg-white border border-(--color-sea-fog) text-(--color-midnight-harbor)'
+                      }`}>
+                        <span className="block font-bold text-[9px] mb-0.5 opacity-75">
+                          {msg.senderName}
+                        </span>
+                        {msg.text}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <form onSubmit={handleSendMessage} className="p-3 border-t border-(--color-sea-fog) bg-white flex gap-2 shrinks-0">
+              <input
+                type="text"
+                placeholder="Diskusikan titik temu COD disini..."
+                value={chatInputText}
+                onChange={(e) => setChatInputText(e.target.value)}
+                className="flex-1 px-3 py-2 text-xs rounded-lg border border-(--color-sea-fog) focus:outline-none focus:border-(--color-signal-blue) text-(--color-midnight-harbor)"
+              />
+              <button type="submit" className="bg-(--color-signal-blue) text-white text-xs font-bold px-3.5 rounded-lg cursor-pointer">Kirim</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Report Modal Dialog */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-(--color-sea-fog) w-full max-w-lg shadow-2xl overflow-hidden animate-[zoomIn_0.15s_ease-out]">
+            <div className="px-6 py-4 bg-(--color-midnight-harbor) text-white flex justify-between items-center">
+              <h3 className="font-bold text-lg flex items-center gap-1.5">
+                <PlusCircle className="w-5 h-5 text-(--color-signal-blue)" />
+                Form Laporan Kehilangan / Temuan Baru
+              </h3>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-1 text-slate-300 hover:text-white rounded-full cursor-pointer hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateReport} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-(--color-midnight-harbor) uppercase tracking-wide mb-1">
+                  Jenis Pelaporan
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormType('hilang')}
+                    className={`flex-1 py-3 text-xs font-bold rounded-lg border cursor-pointer transition-all ${
+                      formType === 'hilang'
+                        ? 'bg-(--color-midnight-harbor) text-white border-(--color-midnight-harbor)'
+                        : 'bg-white border-(--color-sea-fog) text-(--color-midnight-harbor)'
+                    }`}
+                  >
+                    Saya Kehilangan Barang (Mencari)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormType('temuan')}
+                    className={`flex-1 py-3 text-xs font-bold rounded-lg border cursor-pointer transition-all ${
+                      formType === 'temuan'
+                        ? 'bg-(--color-midnight-harbor) text-white border-(--color-midnight-harbor)'
+                        : 'bg-white border-(--color-sea-fog) text-(--color-midnight-harbor)'
+                    }`}
+                  >
+                    Saya Menemukan Barang (Finder)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-(--color-midnight-harbor) uppercase tracking-wide mb-1">
+                  Nama Barang / Judul Pelaporan
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Misal: Kunci Motor Honda Vario Merah"
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  className="w-full bg-white px-3.5 py-2.5 text-sm rounded-lg border border-(--color-sea-fog) focus:border-(--color-signal-blue) focus:outline-none text-(--color-midnight-harbor)"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-(--color-midnight-harbor) uppercase tracking-wide mb-1">
+                    Estimasi Area Kampus / Lokasi
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Misal: Parkiran Gedung B"
+                    value={formLocation}
+                    onChange={(e) => setFormLocation(e.target.value)}
+                    className="w-full bg-white px-3.5 py-2.5 text-sm rounded-lg border border-(--color-sea-fog) focus:border-(--color-signal-blue) focus:outline-none text-(--color-midnight-harbor)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-(--color-midnight-harbor) uppercase tracking-wide mb-1">
+                    Tanggal Kejadian
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={formDate}
+                    onChange={(e) => setFormDate(e.target.value)}
+                    className="w-full bg-white px-3.5 py-2.5 text-sm rounded-lg border border-(--color-sea-fog) focus:outline-none text-(--color-midnight-harbor)"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-(--color-midnight-harbor) uppercase tracking-wide mb-1">
+                  Nomer Kontak Anda (WA / Telepon)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Misal: 0812998877"
+                  value={formContact}
+                  onChange={(e) => setFormContact(e.target.value)}
+                  className="w-full bg-white px-3.5 py-2.5 text-sm rounded-lg border border-(--color-sea-fog) focus:border-(--color-signal-blue) focus:outline-none text-(--color-midnight-harbor)"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-(--color-midnight-harbor) uppercase tracking-wide mb-1">
+                  Deskripsi Barang (Ciri Ciri/Kelengkapan)
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Sebutkan ciri-ciri umum barang (warna casing, gantungan, logo stiker), tetapi SISAKAN beberapa detail spesifik rahasia yang hanya diketahui pemilik untuk proses verifikasi nanti!"
+                  value={formDesc}
+                  onChange={(e) => setFormDesc(e.target.value)}
+                  className="w-full bg-white px-3.5 py-2.5 text-sm rounded-lg border border-(--color-sea-fog) focus:border-(--color-signal-blue) focus:outline-none text-(--color-midnight-harbor)"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3 font-semibold text-xs">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2.5 rounded-lg border border-(--color-sea-fog) text-xs text-(--color-midnight-harbor) hover:bg-slate-50 cursor-pointer"
+                >
+                  Batalkan
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-lg bg-(--color-signal-blue) text-white text-xs hover:bg-(--color-signal-blue)/90 cursor-pointer"
+                >
+                  Terbitkan Laporan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}

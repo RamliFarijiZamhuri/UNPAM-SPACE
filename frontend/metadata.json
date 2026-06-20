@@ -1,0 +1,6 @@
+{
+  "name": "UNPAM SPACE",
+  "description": "Ekosistem digital mahasiswa Universitas Pamulang. Cari kos, jual beli barang, info event, denah kampus, forum komunitas, dan barang temuan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
