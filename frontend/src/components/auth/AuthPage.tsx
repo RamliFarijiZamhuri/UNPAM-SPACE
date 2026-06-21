@@ -29,7 +29,7 @@ export default function AuthPage({
   const [regPass, setRegPass] = useState('');
   const [regGender, setRegGender] = useState<'pria' | 'wanita'>('pria');
   const [regProdi, setRegProdi] = useState('Teknik Informatika');
-  const [regSemester, setRegSemester] = useState(4);
+  const [regSemester, setRegSemester] = useState(1);
   const [uploadDocName, setUploadDocName] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -223,7 +223,7 @@ export default function AuthPage({
                 <input
                   type="email"
                   required
-                  placeholder="Isi: raihan@gmail.com..."
+                  placeholder="contoh@gmail.com"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
                   className="w-full bg-white pl-10 pr-4 py-2.5 text-xs rounded-lg border border-(--color-sea-fog) focus:outline-none focus:border-(--color-signal-blue) text-(--color-midnight-harbor)"
@@ -363,7 +363,7 @@ export default function AuthPage({
               <input
                 type="email"
                 required
-                placeholder="raihan@unpam.ac.id"
+                placeholder="email@unpam.ac.id"
                 value={regEmail}
                 onChange={(e) => setRegEmail(e.target.value)}
                 className="w-full bg-white px-3 py-2 text-xs rounded-lg border border-(--color-sea-fog) focus:outline-none focus:border-(--color-signal-blue) text-(--color-midnight-harbor)"

@@ -12,6 +12,8 @@ const PORT = process.env.PORT || 5000;
 // Di production, ganti dengan URL domain Next.js Anda
 const allowedOrigins = [
   'http://localhost:3000', // Untuk lokal testing
+  'http://localhost:5173', // Vite dev server default
+  'http://localhost:5174', // Vite dev server fallback
   'https://unpam-space.vercel.app' // URL frontend setelah deploy
 ];
 

@@ -216,7 +216,7 @@ router.post('/:id/like', authMiddleware, async (req, res) => {
       .from('forum_threads')
       .update({ upvotes: currentUpvotes + 1 })
       .eq('id', threadId)
-      .select('id', 'upvotes')
+      .select('id, upvotes')
       .single();
 
     if (updateError) {

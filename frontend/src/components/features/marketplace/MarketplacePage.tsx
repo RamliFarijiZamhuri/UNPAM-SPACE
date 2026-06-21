@@ -25,13 +25,13 @@ export default function MarketplacePage({ currentUser, onGoBack }: MarketplacePa
   const [formPrice, setFormPrice] = useState<number | ''>('');
   const [formCondition, setFormCondition] = useState<'baru' | 'bekas'>('bekas');
   const [formCategory, setFormCategory] = useState<MarketCategory>('buku');
-  const [formPhone, setFormPhone] = useState(currentUser.gender === 'pria' ? '0812' : '0813');
+  const [formPhone, setFormPhone] = useState('');
   const [formPhotos, setFormPhotos] = useState<File[]>([]);
   const [formPhotoPreviews, setFormPhotoPreviews] = useState<string[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []) as File[];
     if (formPhotos.length + files.length > 5) {
       triggerToast('Maksimal 5 foto barang!');
       return;

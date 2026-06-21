@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const supabase = require('../lib/supabase');
 const authMiddleware = require('../middleware/auth.middleware');
 const Event = require('../models/Event');
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 // ============================================================
 // GET /  —  Mengambil semua event (terdekat duluan)
@@ -74,8 +77,36 @@ router.get('/:id', async (req, res) => {
 // ============================================================
 // POST /  —  Buat event baru (perlu login)
 // ============================================================
-router.post('/', authMiddleware, async (req, res) => {
+
+router.post('/', authMiddleware, upload.single('poster'), async (req, res) => {
   try {
+    let posterUrl = null;
+
+    if (req.file) {
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const { error: uploadError } = await supabase.storage
+        .from('events')
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          cacheControl: '3600',
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        return res.status(500).json({
+          success: false,
+          message: `Gagal mengupload poster: ${uploadError.message}`,
+          data: null,
+        });
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('events')
+        .getPublicUrl(fileName);
+
+      posterUrl = urlData.publicUrl;
+    }
+
     const { judul, deskripsi, lokasi, tanggal_mulai, tanggal_selesai, kategori } = req.body;
 
     const validation = Event.validate(req.body);
@@ -92,6 +123,7 @@ router.post('/', authMiddleware, async (req, res) => {
       .insert([{
         user_id: req.user.id,
         judul, deskripsi, lokasi, tanggal_mulai, tanggal_selesai, kategori,
+        poster_url: posterUrl
       }])
       .select()
       .single();
