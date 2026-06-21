@@ -33,8 +33,6 @@ Informasi dan kebutuhan sehari-hari mahasiswa Unpam selama ini tersebar di berba
 4. **Tidak ada denah kampus digital** — mahasiswa baru sering tersesat karena tidak ada peta interaktif gedung/ruangan
 5. **Tidak ada ruang komunitas terstruktur** — diskusi dan ajakan kolaborasi (mabar, PKM, project, komunitas IT) tersebar tanpa kategori atau indeks yang jelas
 
-Detail lengkap data pendukung & studi masalah ada di [`PRD-UNPAM-SPACE_V1_2.md`](./PRD-UNPAM-SPACE_V1_2.md).
-
 ---
 
 ## ✨ Fitur Utama
@@ -51,24 +49,6 @@ Detail lengkap data pendukung & studi masalah ada di [`PRD-UNPAM-SPACE_V1_2.md`]
 | 8 | **Barang Hilang/Temuan** | Papan laporan kehilangan & temuan dengan pencocokan otomatis dan sesi chat klaim |
 | 9 | **Community / Forum** | Ruang sosial bergaya **Discord** — topik/kategori (Cari Teman, Mabar, PKM, Project, Bahas Matkul, Cyber Security, Cisco, dll.), post, balasan, upvote, DM |
 | 10 | **Unpam Space+** | Subscription Rp13.000/bulan — badge & warna post eksklusif, posisi atas di pencarian Community, status boost otomatis |
-| 11 | **Boost Pay-per-Use** | Pembelian sekali pakai untuk menaikkan posisi listing kos/marketplace tertentu |
-
-> Spesifikasi fungsional, acceptance criteria, dan level verifikasi tiap fitur — lihat bagian 5 di PRD.
-
----
-
-## 🎨 Pengalaman & Desain
-
-Perubahan filosofi desain terbesar di v1.2: **tidak ada dashboard sidebar**. Setelah login, pengguna mendarat di **Main Page** berbasis grid kartu — tiap kartu fitur membuka **halaman tersendiri (route terpisah)**, bukan panel di dalam satu dashboard. Tujuannya supaya tiap fitur punya ruang fokus dan pengalaman yang khas.
-
-**Tiga animasi inti:**
-- **Cursor-follow background** di Landing Page — elemen visual bereaksi terhadap posisi kursor
-- **Scroll reveal** — section informasi di landing muncul bertahap saat di-scroll
-- **Welcome typing animation** di Main Page — menyapa pengguna secara personal (*"Hi, {nama}!"*)
-
-**Karakter maskot random:** Main Page menampilkan satu karakter maskot acak setiap kunjungan, dipilih dari 10 asset (5 ekspresi pria + 5 ekspresi wanita) sesuai gender profil pengguna. Slot asset disiapkan agar tim bisa mengisi gambar (hasil AI) tanpa mengubah kode — lihat `frontend/public/images/mascots/`.
-
-Animasi berat (cursor-follow) menghormati preferensi `prefers-reduced-motion` dan akan fallback ke tampilan statis di perangkat berperforma rendah.
 
 ---
 
@@ -92,9 +72,8 @@ Badge verifikasi (trust) dan badge subscription (eksklusivitas) bersifat **indep
 Pendekatan **freemium** — seluruh fitur inti tetap gratis untuk semua mahasiswa. Dua sumber pendapatan:
 
 1. **Unpam Space+** (Rp13.000/bulan) — eksklusivitas tampilan profil & post di Community, status boost otomatis untuk listing milik sendiri
-2. **Boost Pay-per-Use** — siapa pun bisa membeli boost sekali pakai per listing kos/marketplace untuk durasi tertentu
 
-Target metrik monetisasi awal (indikatif, lihat bagian 11 PRD): 5% subscriber dari total pengguna terdaftar, conversion rate >3%, churn rate <15%.
+Target metrik monetisasi awal: 5% subscriber dari total pengguna terdaftar, conversion rate >3%, churn rate <15%.
 
 ---
 
@@ -113,38 +92,6 @@ Target metrik monetisasi awal (indikatif, lihat bagian 11 PRD): 5% subscriber da
 | Hosting | Vercel (frontend) + Railway/Render (backend) + Supabase (DB & storage) | Gratis untuk prototype, auto-deploy dari Git |
 
 > **Catatan arsitektur penting:** Frontend Next.js **tidak pernah** terhubung langsung ke Supabase. Semua request melewati backend Express yang memvalidasi JWT terlebih dahulu. Row Level Security (RLS) di Supabase dimatikan karena autentikasi sepenuhnya dikendalikan backend — `service_role key` tidak pernah terekspos ke browser.
-
----
-
-## 📁 Struktur Folder
-
-```
-unpam-space/
-├── frontend/                  ← Next.js App Router
-│   ├── app/
-│   │   ├── page.tsx           ← Landing page ("/")
-│   │   ├── (auth)/login, register
-│   │   ├── main/               ← Main Page (grid fitur, BUKAN dashboard)
-│   │   ├── event/, marketplace/, kos/, map/, temuan/, community/, plus/
-│   │   └── globals.css
-│   ├── components/
-│   │   ├── ui/                 ← Button, Card, Modal, dst.
-│   │   ├── layout/              ← Navbar, Footer
-│   │   ├── animations/          ← CursorBackground, ScrollReveal, TypingText, dst.
-│   │   └── features/            ← Komponen spesifik per fitur (event, marketplace, community, dst.)
-│   ├── lib/, hooks/, types/
-│   └── public/images/mascots/   ← Slot asset maskot (male-1..5, female-1..5)
-│
-├── backend/
-│   ├── server.js
-│   ├── routes/                 ← auth, event, marketplace, kos, community, subscription, boost
-│   ├── models/                 ← User, Listing, Event, Post, Subscription
-│   └── middleware/auth.middleware.js
-│
-└── README.md
-```
-
-Setiap fitur = route Next.js tersendiri (`app/<fitur>/page.tsx`), bukan komponen panel di dalam satu dashboard. Struktur lengkap dengan komentar penjelasan ada di bagian 9.2 PRD.
 
 ---
 
@@ -178,10 +125,6 @@ Environment variables (`.env`) untuk koneksi Supabase, JWT secret, dan konfigura
 | Hustler | PM & Presenter | PPT, narasi demo, dokumentasi, pengumpulan data survei |
 
 ---
-
-## 📊 Status Project
-
-**Versi PRD saat ini:** v1.2 — lihat [`PRD-UNPAM-SPACE_V1_2.md`](./PRD-UNPAM-SPACE_V1_2.md) untuk dokumentasi lengkap (latar belakang, user flow, non-functional requirements, roadmap, dan risiko & mitigasi).
 
 ### Fitur Prioritas Hackathon (Must Have)
 
