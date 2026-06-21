@@ -98,6 +98,6 @@ app.use((err, req, res, _next) => {
 // START SERVER
 // ============================================================
 app.listen(PORT, () => {
-  console.log(`🚀 UNPAM Space API running on https://hackathon-himtif-ad4y-1u9k595hy-ramli-fariji-zamhuris-projects.vercel.app/${PORT}`);
+  console.log(`🚀 UNPAM Space API running on http://localhost:${PORT}`);
 });
 module.exports = app;
