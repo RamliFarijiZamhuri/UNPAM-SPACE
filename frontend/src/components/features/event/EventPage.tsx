@@ -35,6 +35,7 @@ export default function EventPage({
           location: e.lokasi,
           category: e.kategori,
           organizer: e.deskripsi?.match(/\[Diselenggarakan oleh: (.*?)\]/)?.[1] || e.users?.nama || 'HIMTIF',
+          posterUrl: e.poster_url,
           savedByUsers: [],
           shares: 0
         }));
@@ -53,6 +54,7 @@ export default function EventPage({
   const [formTime, setFormTime] = useState('');
   const [formLocation, setFormLocation] = useState('');
   const [formCategory, setFormCategory] = useState<EventCategory>('seminar');
+  const [formPoster, setFormPoster] = useState<File | null>(null);
   const [formPosterPreview, setFormPosterPreview] = useState<string | null>(null);
   const posterInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,6 +65,7 @@ export default function EventPage({
       triggerToast('Ukuran file poster maksimal 5MB!');
       return;
     }
+    setFormPoster(file);
     const reader = new FileReader();
     reader.onloadend = () => {
       setFormPosterPreview(reader.result as string);
@@ -106,19 +109,22 @@ export default function EventPage({
 
     try {
       const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('judul', formTitle);
+      formData.append('deskripsi', `[Diselenggarakan oleh: ${formOrganizer}]\n[Waktu: ${formTime}]\n\n${formDesc}`);
+      formData.append('lokasi', formLocation);
+      formData.append('tanggal_mulai', formDate);
+      formData.append('kategori', formCategory);
+      if (formPoster) {
+        formData.append('poster', formPoster);
+      }
+
       const response = await fetch('http://localhost:5000/api/event', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          judul: formTitle,
-          deskripsi: `[Diselenggarakan oleh: ${formOrganizer}]\n[Waktu: ${formTime}]\n\n${formDesc}`,
-          lokasi: formLocation,
-          tanggal_mulai: formDate,
-          kategori: formCategory
-        })
+        body: formData
       });
 
       const result = await response.json();
@@ -131,6 +137,7 @@ export default function EventPage({
         setFormTime('');
         setFormLocation('');
         setFormPosterPreview(null);
+        setFormPoster(null);
         setShowAddModal(false);
         triggerToast('Sukses mempublikasikan event kampus baru!');
       } else {
@@ -226,8 +233,8 @@ export default function EventPage({
               key={cat.value}
               onClick={() => setActiveCategory(cat.value)}
               className={`whitespace-nowrap px-4 py-2 text-xs font-bold rounded-full cursor-pointer border transition-all ${activeCategory === cat.value
-                  ? 'bg-(--color-signal-blue) border-(--color-signal-blue) text-white shadow-sm'
-                  : 'bg-white border-(--color-sea-fog) text-(--color-midnight-harbor) hover:bg-slate-50'
+                ? 'bg-(--color-signal-blue) border-(--color-signal-blue) text-white shadow-sm'
+                : 'bg-white border-(--color-sea-fog) text-(--color-midnight-harbor) hover:bg-slate-50'
                 }`}
             >
               {cat.label}
@@ -320,8 +327,8 @@ export default function EventPage({
                       triggerToast(isSaved ? 'Berhasil menghapus event dari kalender Anda' : 'Sukses menyimpan event ke kalender Anda!');
                     }}
                     className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold border transition-all cursor-pointer ${isSaved
-                        ? 'bg-(--color-midnight-harbor) border-(--color-midnight-harbor) text-white'
-                        : 'bg-white border-(--color-sea-fog) text-(--color-midnight-harbor) hover:bg-slate-50'
+                      ? 'bg-(--color-midnight-harbor) border-(--color-midnight-harbor) text-white'
+                      : 'bg-white border-(--color-sea-fog) text-(--color-midnight-harbor) hover:bg-slate-50'
                       }`}
                   >
                     <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
@@ -478,7 +485,7 @@ export default function EventPage({
                           <img src={formPosterPreview} alt="Preview poster" className="w-full max-h-40 object-contain" />
                           <button
                             type="button"
-                            onClick={() => { setFormPosterPreview(null); if (posterInputRef.current) posterInputRef.current.value = ''; }}
+                            onClick={() => { setFormPoster(null); setFormPosterPreview(null); if (posterInputRef.current) posterInputRef.current.value = ''; }}
                             className="absolute top-2 right-2 p-1.5 bg-red-500/90 hover:bg-red-600 text-white rounded-full cursor-pointer transition-all"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

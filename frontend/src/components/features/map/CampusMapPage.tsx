@@ -15,11 +15,6 @@ export default function CampusMapPage({ currentUser, onGoBack }: CampusMapPagePr
   const [searchQuery, setSearchQuery] = useState('');
   const [activeRoom, setActiveRoom] = useState<MapRoom | null>(MAP_ROOMS[0]);
 
-  // Handle room search and clicking
-  const handleRoomSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
-
   const floors = [1, 2, 3, 4, 5, 8];
 
   const types = [

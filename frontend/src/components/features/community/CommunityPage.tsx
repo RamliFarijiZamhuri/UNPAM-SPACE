@@ -256,8 +256,6 @@ export default function CommunityPage({ currentUser, onGoBack }: CommunityPagePr
       return b.createdAt.localeCompare(a.createdAt);
     });
 
-  const activeChannelDesc = 'Forum diskusi terbuka untuk seluruh kalangan mahasiswa UNPAM.';
-  const activeChannelLabel = 'General Feed';
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">

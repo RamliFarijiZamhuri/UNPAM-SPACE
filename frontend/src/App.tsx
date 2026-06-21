@@ -40,16 +40,28 @@ export default function App() {
   // Load user from localStorage if exists
   useEffect(() => {
     const savedUser = localStorage.getItem('unpam_space_user');
+    const savedTab = localStorage.getItem('unpam_space_active_tab');
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser) as User;
         setCurrentUser(parsed);
-        setActiveTab('main'); // auto go to main page if logged in
+        if (savedTab) {
+          setActiveTab(savedTab);
+        } else {
+          setActiveTab('main'); // auto go to main page if logged in
+        }
       } catch (e) {
         console.error('Failed to parse user', e);
       }
     }
   }, []);
+
+  // Save activeTab to localStorage whenever it changes
+  useEffect(() => {
+    if (activeTab !== 'landing') {
+      localStorage.setItem('unpam_space_active_tab', activeTab);
+    }
+  }, [activeTab]);
 
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);

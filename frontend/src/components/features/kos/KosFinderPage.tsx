@@ -28,7 +28,7 @@ export default function KosFinderPage({ currentUser, onGoBack }: KosFinderPagePr
   const [wifiChecked, setWifiChecked] = useState(true);
   const [acChecked, setAcChecked] = useState(false);
   const [wcChecked, setWcChecked] = useState(true);
-  const [formPhone, setFormPhone] = useState('0812');
+  const [formPhone, setFormPhone] = useState('');
   const [formPhotos, setFormPhotos] = useState<File[]>([]);
   const [formPhotoPreviews, setFormPhotoPreviews] = useState<string[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
