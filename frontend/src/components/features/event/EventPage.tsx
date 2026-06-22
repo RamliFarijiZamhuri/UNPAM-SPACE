@@ -24,7 +24,7 @@ export default function EventPage({
   const fetchEvents = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/event`, { headers: {
-        'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND, 'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND } });
+        'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND } });
       const result = await response.json();
       if (response.ok && result.success) {
         const mappedEvents: CampusEvent[] = result.data.map((e: any) => ({

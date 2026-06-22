@@ -50,7 +50,7 @@ export default function CommunityPage({ currentUser, onGoBack }: CommunityPagePr
     
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/forum/${post.id}`, { headers: {
-        'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND, 'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND } });
+        'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND } });
       const result = await response.json();
       if (response.ok && result.success) {
         // Map backend comments to frontend ForumComment type
@@ -77,7 +77,7 @@ export default function CommunityPage({ currentUser, onGoBack }: CommunityPagePr
   const fetchPosts = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/forum`, { headers: {
-        'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND, 'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND } });
+        'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND } });
       const result = await response.json();
       if (response.ok && result.success) {
         const likedPostIds = JSON.parse(localStorage.getItem(`liked_posts_${currentUser.id}`) || '[]');

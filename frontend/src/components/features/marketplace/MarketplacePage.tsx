@@ -80,7 +80,7 @@ export default function MarketplacePage({ currentUser, onGoBack }: MarketplacePa
   const fetchProducts = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/marketplace`, { headers: {
-        'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND, 'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND } });
+        'x-api-key': import.meta.env.VITE_KODE_RAHASIA_FRONTEND } });
       const result = await response.json();
       if (response.ok && result.success) {
         const mappedProducts: MarketItem[] = result.data.map((p: any) => ({
